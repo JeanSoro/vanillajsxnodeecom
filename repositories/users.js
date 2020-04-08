@@ -22,7 +22,15 @@ class UsersRepository {
   async getAll() {
     //Open the file called this.filename Read its contents Parse the contents Return the parsed data
     return JSON.parse(await fs.promises.readFile(this.filename, { encoding: 'utf8' }));
+  }
 
+  async create(attributes) {
+
+    const records = await this.getAll();
+    records.push(attributes);
+
+    //write it back to users.json / this.filename
+    await fs.promises.writeFile(this.filename, JSON.stringify(records))
 
   }
 
@@ -33,7 +41,10 @@ class UsersRepository {
 const test = async () => {
 
   const repo = new UsersRepository('users.json');
-  await repo.getAll();
+
+  await repo.create({ email: 'test@email.com', password: 'password123' });
+
+  const users = await repo.getAll();
 }
 
 test()
