@@ -1,4 +1,5 @@
 const fs = require('fs');
+const crypto = require('crypto');
 
 class UsersRepository {
 
@@ -26,26 +27,75 @@ class UsersRepository {
 
   async create(attributes) {
 
+    attributes.id = this.randomId();
+
     const records = await this.getAll();
     records.push(attributes);
 
-    //write it back to users.json / this.filename
-    await fs.promises.writeFile(this.filename, JSON.stringify(records))
+    await this.writeAll(records);
+
 
   }
 
+  async writeAll(records) {
+    //write it back to users.json / this.filename
+    await fs.promises.writeFile(this.filename, JSON.stringify(records, null, 2))
+  }
 
+  randomId() {
+    return crypto.randomBytes(4).toString('hex');
+  }
+
+  async getOne(id) {
+
+    const records = await this.getAll();
+    return records.find(record => record.id === id);
+  }
+
+  async delete(id) {
+
+    const records = await this.getAll();
+    const filteredRecords = records.filter(record => record.id !== id);
+
+    await this.writeAll(filteredRecords);
+  }
+
+  async update(id, attributes) {
+    const records = await this.getAll();
+    const record = records.find(record => record.id === id);
+
+    if (!record) {
+      throw new Error(`Record with id ${id} does not exist`)
+    }
+
+    Object.assign(record, attributes);
+
+    await this.writeAll(records);
+
+
+  }
+
+  async getOneBy(filters) {
+    const records = await this.getAll();
+
+    for (let record of records) {
+      let found = true;
+
+      for (let key in filters) {
+        if (record[key] !== filters[key]) {
+          found = false;
+        }
+      }
+
+      if (found) {
+        return record;
+      }
+
+
+    }
+  }
 
 }
 
-const test = async () => {
-
-  const repo = new UsersRepository('users.json');
-
-  await repo.create({ email: 'test@email.com', password: 'password123' });
-
-  const users = await repo.getAll();
-}
-
-test()
+module.exports = new UsersRepository('users.json');
 
